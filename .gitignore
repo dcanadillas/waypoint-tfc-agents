@@ -1,0 +1,5 @@
+.DS_Store
+data.db
+creds.json
+gcp_values.json
+**/.waypoint/**
