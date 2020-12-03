@@ -1,12 +1,34 @@
 # Deploy TFC agents in Kubernetes with Waypoint
 
+> NOTE: This is not an official HashiCorp repository and it is a WIP, so it might change frequently. The goal of this repository is to share knowledge.
+
+## Why this...
+
+You can deploy [Terraform Cloud agent docker container](https://hub.docker.com/r/hashicorp/tfc-agent) in Kubernetes just by a simple `kubectl apply -f <your_deploy_manifest>.yaml` command. But then you need to be aware about a couple of things:
+* You need to inject a token variable in the container to authenticate to Terraform Cloud from the agent, so your deployment manifest needs to have the token variable definition (clear text or parametrized by some other Kubernetes templating tool like Helm, Kustomize or Kpt)
+* When you deploy the agent, you need some Kubernetes knowledge and playground to do the debugging, like watching container logs or statuses
+* Updating the agent means updating the manifest and redeploy again
+
+There are some **security concerns** then about managing variables definitions in the Kubernetes manifest, and also some Kubernetes knowledge (not very advanced, but you need to have it) to do the agent monitoring.
+
+So, I have decided to use a simple deployment tool like [Waypoint](https://www.waypointproject.io/) that helps on this by:
+* Injecting the container variables without the need to define them on the manifest, so you can secure the process in different ways
+* Watching container logs on the agent without having to access the Kubernetes cluster from your local machine
+* To update your agent is as simple as running the following command: `waypoint up`
+
+The goal of this repo is more a knowledge sharing thing about Waypoint deployments, but this use case could be a good example of securing your Terraform Cloud hosted agent deployments in Kubernetes to integrate in your CI/CD orchestration.
+
+Following high level diagram explains the deployment:
+
+![Waypoint TFC agent deployment diagram](./docs/Waypoint_TFC_Agents.png)
+
 ## Requirements
 * Waypoint [binary](https://www.waypointproject.io/downloads)
 * Docker installed
-* A Kubernetes cluster
-* [kubectl]() tool
+* A Kubernetes cluster (I use [Minikube](https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-intro/) for a local test)
+* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) tool
 * [Terraform Cloud account](https://app.terraform.io/app) with a Business tier subscription
-* A Terraform Cloud [organization token]()
+* A Terraform Cloud [organization token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#organization-api-tokens)
 
 ## A secured happy path (using Vault to store Terraform Cloud agent pool token)
 

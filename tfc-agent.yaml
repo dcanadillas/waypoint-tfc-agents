@@ -22,4 +22,5 @@ spec:
         env:
           {{range $key, $value := .Env}}
           - name: {{$key}}
-            value: "{{$value}}"{{end}}
+            value: "{{$value}}"
+          {{end}}
