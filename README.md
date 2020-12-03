@@ -8,14 +8,18 @@
 * [Terraform Cloud account](https://app.terraform.io/app) with a Business tier subscription
 * A Terraform Cloud [organization token]()
 
-## The happy path (using Vault for the token)
+## A secured happy path (using Vault to store Terraform Cloud agent pool token)
 
-> NOTE: Jump to the [next section](#create-an-agent-pool-token-in-terraform-cloud) if you want to do it by your own step by step. This section just executes most of the preparation things in a script and using Vault to store your Agent pool token
+> NOTE: If you use this *happy path* you don't need to go to the other sections of this README. Avoid this and jump to the [next section](#create-an-agent-pool-token-in-terraform-cloud) if you want to do it by your own step by step. 
 
-There is a Bash script included in this repo `script.sh` that uses Vault (assuming that you have admin permissions to create a K/V secrets engine) to store your Agent pool token and configures Waypoint variables. So you can do execute everything by:
+This section just guides you to run most of the preparation things in a script and uses your own [HashiCorp Vault](https://vaultproject.io) to store your Agent pool token. So, you will also need a Vault token with permissions to enable a K/V secrets engine called `waypoint` and privileges to read and write on it.
+
+There is a Bash script `script.sh` included in this repo  that creates the agent pool token in Terraform Cloud using the REST API, connects to Vault to store the token and configures Waypoint variables with those values. So, you can do everything in your bash terminal by running the following commands in order (replace your variables values for Vault and Terraform Cloud):
 ```bash
 export VAULT_ADDR=<your_vault_address>
 export VAULT_TOKEN=<your_vault_token>
+export TFE_TOKEN=<your_terraform_cloud_org_token>
+export TFE_ORG=<your_terraform_org_name>
 
 kubectl create ns waypoint
 
@@ -23,7 +27,7 @@ waypoint install -platform=kubernetes -nasmespace=waypoint -context-create="wayp
 
 ./script.sh
 
-waypoint up -app kubernetes
+waypoint up -app agent-kubernetes
 ```
 
 ## Create an agent pool token in Terraform Cloud
