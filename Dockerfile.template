@@ -1,0 +1,4 @@
+FROM hashicorp/tfc-agent:latest
+
+# Do your stuff here if you want to include some tools in the TFC agent
+# ...
