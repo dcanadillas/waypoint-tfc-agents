@@ -45,11 +45,25 @@ export TFE_ORG=<your_terraform_org_name>
 
 kubectl create ns waypoint
 
-waypoint install -platform=kubernetes -nasmespace=waypoint -context-create="waypoint-kubernetes" -accept-tos
+waypoint install -platform=kubernetes -namespace=waypoint -context-create="waypoint-kubernetes" -accept-tos
+
+waypoint init
+
+waypoint ui -authenticate
 
 ./script.sh
 
 waypoint up -app agent-kubernetes
+```
+
+Then, you can access or execute any command in the container of the agent by using waypoint. For example, if you want to access to the container's terminal:
+```bash
+waypoint exec -app agent-kubernetes bash
+```
+
+And you can access to the containers logs (you can [use also de UI](#deploy-the-tfc-agent-with-waypoint)):
+```bash
+waypoint logs -app agent-kubernetes
 ```
 
 ## Create an agent pool token in Terraform Cloud
@@ -131,3 +145,6 @@ That's all! You will see your TFC agent connected into the pool:
 
 ![tfc-agents deployed](./docs/tfc-agent-deployed.png)
 
+Also, you can check the agents logs from the Waypoint Project UI:
+
+![TFC Agents logs](./docs/Waypoint-tfc-agent-logs.png)
