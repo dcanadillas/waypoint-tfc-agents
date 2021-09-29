@@ -5,7 +5,7 @@
 ## Why this...
 
 You can deploy [Terraform Cloud agent docker container](https://hub.docker.com/r/hashicorp/tfc-agent) in Kubernetes just by a simple `kubectl apply -f <your_deploy_manifest>.yaml` command. But then you need to be aware about a couple of things:
-* You need to inject a token variable in the container to authenticate to Terraform Cloud from the agent, so your deployment manifest needs to have the token variable definition (clear text or parametrized by some other Kubernetes templating tool like Helm, Kustomize or Kpt)
+* You need to inject a token variable in the container to authenticate to Terraform Cloud from the agent, so your deployment manifest needs to have the token variable definition (clear text or parametrized by some other Kubernetes templating tool like Helm, Kustomize or Kpt), or using some other Kubernetes mount points (`secrets`, `configMaps` or other mount volumes way)
 * When you deploy the agent, you need some Kubernetes knowledge and playground to do the debugging, like watching container logs or statuses
 * Updating the agent means updating the manifest and redeploy again
 
