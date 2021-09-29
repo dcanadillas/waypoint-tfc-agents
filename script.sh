@@ -3,6 +3,13 @@
 
 TFC_AGENT_NAME="tfc-agent"
 TFC_POOL_NAME="demo-pool"
+# VAULT_NAMESPACE="root"
+TFE_ORG=$1
+
+if [ -z "$1" ];then
+  echo "You need to specify the TFC/TFE organization as a parameter of this script..."
+  exit 1
+fi
 
 if [ -z "$VAULT_TOKEN" ];then
   echo "VAULT_TOKEN variable is not set to authenticate into Vault"
@@ -12,6 +19,12 @@ fi
 if [ -z "$VAULT_ADDR" ];then
   echo "VAULT_ADDR variable is not set for your Vault Address"
   exit 1
+fi
+
+if [ -z "$VAULT_NAMESPACE" ];then
+  echo "VAULT_NAMESPACE variable is not set for your Vault Address"
+  echo "Using \"root\" namespace"
+  VAULT_NAMESPACE="root"
 fi
 
 if [ -z "$TFE_TOKEN" ];then
@@ -34,7 +47,7 @@ TFC_POOL_ID=$(curl -s -H "Authorization: Bearer $TFE_TOKEN" -H "Content-Type: ap
 #   echo "TRUE"
 # fi
 
-echo "Pool ID is: $TFC_POOL_ID"
+
 
 # If previous pool ID variable is empty, let's create the pool and retrieve the pool ID
 if [ -z "$TFC_POOL_ID" ] || [ "$TFC_POOL_ID" == "null" ];then
@@ -52,6 +65,8 @@ EOF
   )
 fi
 
+echo "Pool ID is: $TFC_POOL_ID"
+
 TFC_AGENT_TOKEN=$(cat << EOF | curl -s -H "Authorization: Bearer $TFE_TOKEN" -H "Content-Type: application/vnd.api+json" -X POST -d @- https://app.terraform.io/api/v2/agent-pools/$TFC_POOL_ID/authentication-tokens | jq -r '.data.attributes.token'
 {
   "data": {
@@ -64,6 +79,7 @@ TFC_AGENT_TOKEN=$(cat << EOF | curl -s -H "Authorization: Bearer $TFE_TOKEN" -H 
 EOF
 )
 
+echo $TFC_AGENT_TOKEN
 
 ## Enabling a secrets path and uploading the Vault secret
 
@@ -71,13 +87,13 @@ EOF
 #vault kv put waypoint/tfc tfc_token=$TFC_AGENT_TOKEN tfc_name="$TFC_AGENT_NAME"
 
 
-cat << EOF | curl -X POST -H "accept: */*" -H "X-Vault-Token: $VAULT_TOKEN" -d @- "$VAULT_ADDR/v1/sys/mounts/waypoint"
+cat << EOF | curl -X POST -H "accept: */*" -H "X-Vault-Namespace: $VAULT_NAMESPACE" -H "X-Vault-Token: $VAULT_TOKEN" -d @- "$VAULT_ADDR/v1/sys/mounts/waypoint"
 {
   "type": "kv"
 }
 EOF
 
-cat << EOF | curl -X POST -H "accept: */*" -H "X-Vault-Token: $VAULT_TOKEN" -d @- "$VAULT_ADDR/v1/waypoint/tfc"
+cat << EOF | curl -X POST -H "accept: */*" -H "X-Vault-Namespace: $VAULT_NAMESPACE" -H "X-Vault-Token: $VAULT_TOKEN" -d @- "$VAULT_ADDR/v1/waypoint/tfc"
 {
   "tfc_name": "$TFC_AGENT_NAME",
   "tfc_token": "$TFC_AGENT_TOKEN"
@@ -93,7 +109,9 @@ EOF
 # EOF
 
 # waypoint config set -app agent-kubernetes TFC_AGENT_TOKEN=$(curl -H "X-Vault-Token: $VAULT_TOKEN" -H "accept: */*" $VAULT_ADDR/v1/kv/data/tfc_tokens | jq -r '.data.data["dcanadillas-agent"]')
-waypoint config set -app agent-kubernetes TFC_AGENT_TOKEN=$(curl -H "X-Vault-Token: $VAULT_TOKEN" -H "accept: */*" $VAULT_ADDR/v1/waypoint/tfc | jq -r '.data["tfc_token"]')
-waypoint config set -app agent-kubernetes TFC_AGENT_NAME=$(curl -H "X-Vault-Token: $VAULT_TOKEN" -H "accept: */*" $VAULT_ADDR/v1/waypoint/tfc | jq -r '.data["tfc_name"]')
+# waypoint config set -app agent-kubernetes TFC_AGENT_TOKEN=$(curl -H "X-Vault-Token: $VAULT_TOKEN" -H "accept: */*" $VAULT_ADDR/v1/waypoint/tfc | jq -r '.data["tfc_token"]')
+# waypoint config set -app agent-kubernetes TFC_AGENT_NAME=$(curl -H "X-Vault-Token: $VAULT_TOKEN" -H "accept: */*" $VAULT_ADDR/v1/waypoint/tfc | jq -r '.data["tfc_name"]')
+waypoint config source-set -type=vault -config="addr=$VAULT_ADDR" -config="token=$VAULT_TOKEN" -config="skip_verify=true" -config="namespace=$VAULT_NAMESPACE"
 
 waypoint config get
+waypoint config source-get -type=vault

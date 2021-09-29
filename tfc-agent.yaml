@@ -1,26 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tfc-agent
-  namespace: tfc
+  name: "tfc-agent"
+  # namespace: tfc
   labels:
-    app: tfc-agent
+    app: "tfc-agent"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tfc
+      app: "tfc-agent"
   template:
     metadata:
       labels:
-        app: tfc
+        app: "tfc-agent"
     spec:
       containers:
-      - name: "tfc-agent-0"
-        image: {{.Input.DockerImageFull}}
-        imagePullPolicy: Always
-        env:
-          {{range $key, $value := .Env}}
-          - name: {{$key}}
-            value: "{{$value}}"
-          {{end}}
+        - name: "tfc-agent-0"
+          #image: {{.Input.DockerImageFull}}
+          image: ${artifact.image}:${artifact.tag}
+          imagePullPolicy: Always
+          env: 
+          %{ for k,v in entrypoint.env }
+            - name: ${k}
+              value: "${v}"
+          %{ endfor }      
+            # {{range $key, $value := .Env}}
+            # - name: {{$key}}
+            #   value: "{{$value}}"
+            # {{end}}
+

@@ -1,7 +1,31 @@
+variable "gcp_project" {
+  description = "GCP project for a GCR push registry"
+  default = "hc-dcanadillas"
+}
+variable "gcp_location" {
+  description = "GCP location"
+}
+
+
 project = "tfc-agents"
+
+config {
+
+  env = {
+    "TFC_AGENT_NAME" = configdynamic("vault", {
+      path = "waypoint/tfc"
+      key = "tfc_name"
+    })
+    "TFC_AGENT_TOKEN" = "${configdynamic("vault", {
+      path = "waypoint/tfc"
+      key = "tfc_token"
+    })}"
+  }
+}
 
 
 app "agent-kubernetes" {
+  path = "${path.project}"
   url {
     auto_hostname = false
   }
@@ -11,44 +35,34 @@ app "agent-kubernetes" {
       image = "hashicorp/tfc-agent"
       tag = "latest"
     }
-    # use "docker" {}
     registry {
       use "docker" {
-        image = "gcr.io/hc-dcanadillas/tfc-agent"
+        image = "gcr.io/${var.gcp_project}/tfc-agent"
         tag   = "latest"
+        local = true
       }
     }
   }
 
   deploy {
-#    use "kubernetes" {
-#      static_environment = {
-#        TFC_AGENT_TOKEN = "${jsondecode(file("./creds.json"))["tfc_token"]}"
-#        TFC_AGENT_NAME = jsondecode(file("./creds.json"))["tfc_name"]
-#      }
-#    }
-#    hook {
-#      when = "before"
-#      command = [
-#        "./script.sh"
-#      ]
-#    }
-    use "exec" {
+    # Applying the Kubernestes namespace to deploy the agent
+    hook {
+      when = "before"
       command = [
-        "kubectl",
-        "apply",
-        "-f",
-        "<TPL>"
+        "bash",
+        "-c",
+        "echo '{\"apiVersion\": \"v1\",\"kind\":\"Namespace\",\"metadata\":{\"name\":\"tfc\"}}' | kubectl apply -f -"
       ]
-      template {
-        path = "./tfc-agent.yaml"
-      }
+    }
+    use "kubernetes-apply" {
+      path = templatefile("${path.app}/tfc-agent.yaml")
+      prune_label = "app=tfc-agent"
     }
   }
 }
 
 app "agent-docker" {
-    url {
+  url {
     auto_hostname = false
   }
 
@@ -59,15 +73,15 @@ app "agent-docker" {
     }
     registry {
       use "docker" {
-        image = "gcr.io/hc-dcanadillas/tfc-agent"
+        image = "gcr.io/${var.gcp_project}/tfc-agent"
         tag   = "latest"
+        # local = true
       }
     }
   }
     
   deploy {
-    use "docker" {
-    }
+    use "docker" {}
   }
 }
 
@@ -83,7 +97,7 @@ app "agent-cloudrun" {
     }
     registry {
       use "docker" {
-        image = "gcr.io/hc-dcanadillas/tfc-agent"
+        image = "gcr.io/${var.gcp_project}/tfc-agent"
         tag   = "latest"
       }
     }
@@ -91,8 +105,8 @@ app "agent-cloudrun" {
     
   deploy {
     use "google-cloud-run" {
-      project  = "${jsondecode(file("gcp_values.json"))["project"]}"
-      location = "${jsondecode(file("gcp_values.json"))["region"]}"
+      project  = var.gcp_project
+      location = var.gcp_location
 
       capacity {
           memory                     = 1024
@@ -100,12 +114,6 @@ app "agent-cloudrun" {
           max_requests_per_container = 10
           request_timeout            = 300
       }
-
-      static_environment = {
-        TFC_AGENT_TOKEN = "${jsondecode(file("./creds.json"))["tfc_token"]}"
-        TFC_AGENT_NAME = jsondecode(file("./creds.json"))["tfc_name"]
-      }
-
       auto_scaling {
           max = 5
       }
