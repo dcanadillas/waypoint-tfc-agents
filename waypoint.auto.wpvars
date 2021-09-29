@@ -1,0 +1,5 @@
+# vault_path = "waypoint/tfc"
+# vault_tfc_name = "tfc_name"
+# vault_tfc_token = "tfc_token"
+gcp_project = "hc-dcanadillas"
+gcp_location = "europe-west1"
