@@ -30,7 +30,7 @@ Following high level diagram explains the deployment:
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) tool
 * [Terraform Cloud account](https://app.terraform.io/app) with a Business tier subscription
 * A Terraform Cloud [organization token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#organization-api-tokens)
-* A Vault instance accessible by your terminal and your agent containers (you can use [HCP Vault](https://portal.cloud.hashicorp.com/sign-up?utm_source=cloud_landing&utm_content=offers_vault) free credits)
+* A [HashiCorp Vault](https://www.vaultproject.io/downloads) instance accessible by your terminal and your agent containers (you can use [HCP Vault](https://portal.cloud.hashicorp.com/sign-up?utm_source=cloud_landing&utm_content=offers_vault) free credits)
 
 ## A secured happy path (using Vault to store Terraform Cloud agent pool token)
 
@@ -105,11 +105,30 @@ TFC_AGENT_TOKEN=$(cat << EOF | curl -s -H "Authorization: Bearer $TFE_TOKEN" -H 
 EOF)
 ```
 
-### Store your secrets (TFC agent name and agent token) in Vault
+### Store your secrets (TFC agent name and agent token) in HashiCorp Vault
 
 > NOTE: Bear in mind that you are storing the previous data created from Terraform Cloud, so if you did it manually, just copy the Terraform Agent token created before and use it as your `$TFC_AGENT_TOKEN` variable.
 
-Configure your Vault variables `$VAULT_ADDR`, `$VAULT_TOKEN` and `VAULT_NAMESPACE` (if using Vault Enterprise or HCP Vault) and create the secrets with:
+You need to have your HashiCorp Vault instance running, unsealed and accesible with the right policy. If you want, you can run a development instance in the same K8s cluster where you are deploying the agents, so you don't need to route any connectivity to Vault from the cluster:
+
+```
+helm repo add hashicorp https://helm.releases.hashicorp.com
+
+helm repo update
+
+kubectl create ns vault
+
+helm install vault -n vault --set "server.dev.enabled=true" hashicorp/vault
+
+nohup kubectl port-forward -n vault svc/vault 8200:8200 &
+
+export VAULT_ADDR="http://localhost:8200"
+
+export VAULT_TOKEN="root"
+```
+
+
+Configure your Vault variables `$VAULT_ADDR`, `$VAULT_TOKEN` and `$VAULT_NAMESPACE` (if using Vault Enterprise or HCP Vault. For Vault OSS the namespace is `root` or leave it empty) and create the secrets with:
 
 ```bash
 vault secrets enable -path=waypoint kv
